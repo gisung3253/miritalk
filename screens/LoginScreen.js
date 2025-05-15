@@ -15,15 +15,28 @@ const LoginScreen = ({ onLoginSuccess, onSignUpPress }) => {
 
   const handleLogin = async () => {
     if (!validateEmail(email)) {
-      Alert.alert('오류', '유효한 이메일 주소를 입력해주세요.');
+      Alert.alert('경고', '유효한 이메일 주소를 입력해주세요.');
       return;
     }
 
     try {
-      await signIn(email, password);
-      onLoginSuccess();
+      const result = await signIn(email, password);
+      if (result) {
+        onLoginSuccess();
+      }
     } catch (error) {
-      Alert.alert('로그인 실패', error.message);
+      // Firebase 오류 코드에 따른 사용자 친화적인 메시지
+      if (error.code === 'auth/invalid-email') {
+        Alert.alert('경고', '유효하지 않은 이메일 형식입니다.');
+      } else if (error.code === 'auth/user-not-found') {
+        Alert.alert('경고', '이메일이 존재하지 않습니다. 회원가입을 먼저 해주세요.');
+      } else if (error.code === 'auth/wrong-password') {
+        Alert.alert('경고', '비밀번호가 틀렸습니다. 다시 시도해주세요.');
+      } else if (error.code === 'auth/invalid-credential') {
+        Alert.alert('경고', '이메일과 비밀번호를 다시 확인해주세요.');
+      } else {
+        Alert.alert('경고', '로그인에 실패했습니다. 다시 시도해주세요.');
+      }
     }
   };
 
