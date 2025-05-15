@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, Modal } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, Modal, Alert } from 'react-native';
 import styles from '../style/AddEventModal.styles';
 
 const AddEventModal = ({ visible, onClose, onSave, defaultDate }) => {
@@ -8,6 +8,13 @@ const AddEventModal = ({ visible, onClose, onSave, defaultDate }) => {
 
   const handleSave = () => {
     if (!title.trim()) return;
+    // 시간 유효성 검증
+    const timeRegex = /^(?:[01]\d|2[0-3]):[0-5]\d$/;
+    if (!timeRegex.test(time)) {
+      Alert.alert('오류', '올바른 시간 형식을 입력해주세요 (예: 14:30)');
+      return;
+    }
+
     const saveTime = time && time.length === 5 ? time : '00:00';
     onSave({ title, time: saveTime, date: defaultDate });
     setTitle('');

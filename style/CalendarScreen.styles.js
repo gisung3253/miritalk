@@ -1,6 +1,9 @@
 import { StyleSheet } from 'react-native';
 
 const styles = StyleSheet.create({
+  weekendText: {
+    color: '#FF0000',
+  },
   container: {
     flex: 1,
     backgroundColor: '#f9f9f9',
