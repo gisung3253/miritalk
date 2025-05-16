@@ -96,6 +96,31 @@ export const getEventsByMonth = async (monthString) => {
   }
 };
 
+// 모든 일정 조회
+export const getAllEvents = async () => {
+  try {
+    const user = auth.currentUser;
+    if (!user) throw new Error('로그인이 필요합니다.');
+
+    const eventsRef = getUserEventsCollection(user.uid);
+    const q = query(
+      eventsRef,
+      where('userId', '==', user.uid)
+    );
+
+    const querySnapshot = await getDocs(q);
+    const events = [];
+    
+    querySnapshot.forEach((doc) => {
+      events.push({ id: doc.id, ...doc.data() });
+    });
+    return events;
+  } catch (error) {
+    console.error('모든 일정 조회 오류:', error);
+    throw error;
+  }
+};
+
 // 일정 삭제
 export const deleteEvent = async (eventId) => {
   try {
