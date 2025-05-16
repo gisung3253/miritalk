@@ -12,10 +12,10 @@ const firebaseConfig = {
   appId: "1:822375301207:web:a93fcab8443a1f3e57e312"
 };
 
-// Initialize Firebase
+// 파이어베이스 초기화
 const app = initializeApp(firebaseConfig);
 
-// Initialize Auth
+// 파이어베이스 인증 초기화
 const auth = getAuth(app);
 
 // AsyncStorage 설정

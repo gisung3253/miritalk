@@ -7,18 +7,18 @@ import styles from '../style/LoginScreen.styles';
 const LoginScreen = ({ onLoginSuccess, onSignUpPress }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-
+  
   const validateEmail = (email) => {
     const re = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
     return re.test(email);
   };
-
+  
   const handleLogin = async () => {
     if (!validateEmail(email)) {
       Alert.alert('경고', '유효한 이메일 주소를 입력해주세요.');
       return;
     }
-
+    
     try {
       const result = await signIn(email, password);
       if (result) {
@@ -39,8 +39,6 @@ const LoginScreen = ({ onLoginSuccess, onSignUpPress }) => {
       }
     }
   };
-
-
 
   return (
     <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>

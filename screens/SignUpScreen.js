@@ -9,28 +9,28 @@ const SignUpScreen = ({ onSignUpSuccess, onCancel }) => {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [name, setName] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
-
+  
   const validateEmail = (email) => {
     const re = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
     return re.test(email);
   };
-
+  
   const handleSignUp = async () => {
     if (!validateEmail(email)) {
       Alert.alert('오류', '유효한 이메일 주소를 입력해주세요.');
       return;
     }
-
+    
     if (password !== confirmPassword) {
       Alert.alert('오류', '비밀번호가 일치하지 않습니다.');
       return;
     }
-
+    
     if (password.length < 6) {
       Alert.alert('오류', '비밀번호는 최소 6자 이상이어야 합니다.');
       return;
     }
-
+    
     try {
       await signUp(email, password);
       Alert.alert('회원가입 성공', '로그인해주세요');
