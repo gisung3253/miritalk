@@ -171,24 +171,26 @@ const CalendarScreen = ({ onLogout }) => {
       {/* 상단 월/년 표시 */}
       <View style={styles.header}>
         {/* 오늘 버튼 - 왼쪽에 배치 */}
-        <TouchableOpacity 
-          style={styles.todayButtonHeader}
-          onPress={() => {
-            const today = new Date();
-            const todayString = today.toISOString().slice(0, 10);
-            
-            // 상태 업데이트
-            setCurrentMonth(today.getMonth() + 1);
-            setCurrentYear(today.getFullYear());
-            setSelectedDate(todayString);
-            
-            // 캘린더 강제 리렌더링을 위한 키 업데이트
-            setCalendarKey(Date.now());
-          }}
-        >
-          <MaterialIcons name="today" size={20} color="white" />
-          <Text style={styles.todayButtonHeaderText}>오늘</Text>
-        </TouchableOpacity>
+        <View style={{width: 80, alignItems: 'flex-start'}}>
+          <TouchableOpacity 
+            style={styles.todayButtonHeader}
+            onPress={() => {
+              const today = new Date();
+              const todayString = today.toISOString().slice(0, 10);
+              
+              // 상태 업데이트
+              setCurrentMonth(today.getMonth() + 1);
+              setCurrentYear(today.getFullYear());
+              setSelectedDate(todayString);
+              
+              // 캘린더 강제 리렌더링을 위한 키 업데이트
+              setCalendarKey(Date.now());
+            }}
+          >
+            <MaterialIcons name="today" size={20} color="white" />
+            <Text style={styles.todayButtonHeaderText}>오늘</Text>
+          </TouchableOpacity>
+        </View>
         
         {/* 월/년 표시 - 가운데 배치 */}
         <View style={{flex: 1, alignItems: 'center'}}>
@@ -196,9 +198,11 @@ const CalendarScreen = ({ onLogout }) => {
         </View>
         
         {/* 네비게이션 버튼 - 오른쪽에 배치 */}
-        <TouchableOpacity onPress={() => setShowNavigationBar(!showNavigationBar)} style={styles.navIconContainerRight}>
-          <Ionicons name="menu" size={24} color="white" />
-        </TouchableOpacity>
+        <View style={{width: 80, alignItems: 'flex-end'}}>
+          <TouchableOpacity onPress={() => setShowNavigationBar(!showNavigationBar)} style={styles.navIconContainerRight}>
+            <Ionicons name="menu" size={24} color="white" />
+          </TouchableOpacity>
+        </View>
       </View>
       {/* 일정 등록 모달 */}
       <AddEventModal
