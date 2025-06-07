@@ -93,6 +93,9 @@ export default StyleSheet.create({
   logoutText: {
     color: '#FF6B6B',
   },
+  deleteAccountText: {
+    color: '#FF3B30',
+  },
   
   // 버전 정보
   versionInfo: {
