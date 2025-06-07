@@ -13,10 +13,12 @@ import { getEventsByMonth, addEvent, deleteEvent } from '../firebase/firestore';
 
 const CalendarScreen = ({ onLogout }) => {
   // 사용자 인증 확인
-  const user = auth.currentUser;
-  if (!user) {
-    return null;
-  }
+  const [authState, setAuthState] = useState({
+  isLoading: true,
+  isAuthenticated: false,
+  userInfo: null,
+  authType: null
+});
 
   // 상태 관리
   const today = new Date();
