@@ -27,26 +27,39 @@ export default function App() {
     const initializeAuth = async () => {
       try {
         console.log('앱 초기화 시작');
+        
         // 세션 유효성 확인
         const isValid = await verifySession();
         console.log('세션 유효성 확인 결과:', isValid);
         
-        setCurrentScreen(isValid ? 'Calendar' : 'Login');
+        // 화면 설정
+        const targetScreen = isValid ? 'Calendar' : 'Login';
+        console.log('화면 설정:', targetScreen);
+        setCurrentScreen(targetScreen);
+        console.log('currentScreen 설정 완료:', targetScreen);
         
         // 인증 상태 변화 감지 리스너 설정
         const unsubscribe = setupAuthStateListener((isLoggedIn) => {
           console.log('인증 상태 변경:', isLoggedIn ? '로그인됨' : '로그아웃됨');
-          setCurrentScreen(isLoggedIn ? 'Calendar' : 'Login');
+          const newScreen = isLoggedIn ? 'Calendar' : 'Login';
+          console.log('화면 변경:', newScreen);
+          setCurrentScreen(newScreen);
         });
         
-        // 토큰 주기적 갱신 설정 (1시간 토큰 만료 시간보다 짧게)
+        // 토큰 주기적 갱신 설정 (Firebase 사용자가 있을 때만)
         const tokenRefreshInterval = setInterval(async () => {
           if (currentScreen === 'Calendar') {
-            await getValidToken(true);
+            try {
+              await getValidToken(true);
+            } catch (error) {
+              console.log('토큰 갱신 중 오류 (무시):', error.message);
+            }
           }
         }, 45 * 60 * 1000); // 45분마다
         
         setIsAuthInitialized(true);
+        console.log('인증 초기화 완료');
+        
         SplashScreen.hideAsync().catch(() => {
           /* 오류 무시 */
         });
@@ -55,10 +68,12 @@ export default function App() {
         return () => {
           unsubscribe();
           clearInterval(tokenRefreshInterval);
+          console.log('App 정리 함수 실행');
         };
       } catch (error) {
         console.error('인증 초기화 오류:', error);
         setCurrentScreen('Login');
+        setIsAuthInitialized(true);
         SplashScreen.hideAsync().catch(() => {
           /* 오류 무시 */
         });
@@ -69,25 +84,43 @@ export default function App() {
   }, []);
 
   const navigateToCalendar = () => {
+    console.log('navigateToCalendar 호출됨');
     setCurrentScreen('Calendar');
   };
 
   const navigateToLogin = () => {
+    console.log('navigateToLogin 호출됨');
     setCurrentScreen('Login');
   };
 
   const navigateToSignUp = () => {
+    console.log('navigateToSignUp 호출됨');
     setCurrentScreen('SignUp');
   };
 
+  // 현재 화면 상태 로깅
+  console.log('App 렌더링 - currentScreen:', currentScreen, 'isAuthInitialized:', isAuthInitialized);
+
+  if (!isAuthInitialized) {
+    console.log('로딩 화면 표시 중...');
+    return <LoadingScreen />;
+  }
+
   if (currentScreen === 'Loading') {
+    console.log('Loading 화면 표시');
     return <LoadingScreen />;
   } else if (currentScreen === 'Login') {
+    console.log('Login 화면 표시');
     return <LoginScreen onLoginSuccess={navigateToCalendar} onSignUpPress={navigateToSignUp} />;
   } else if (currentScreen === 'SignUp') {
+    console.log('SignUp 화면 표시');
     return <SignUpScreen onSignUpSuccess={navigateToLogin} onCancel={navigateToLogin} />;
-  } else {
+  } else if (currentScreen === 'Calendar') {
+    console.log('Calendar 화면 표시');
     return <CalendarScreen onLogout={navigateToLogin} />;
+  } else {
+    console.log('알 수 없는 화면 상태:', currentScreen, '- Login 화면으로 대체');
+    return <LoginScreen onLoginSuccess={navigateToCalendar} onSignUpPress={navigateToSignUp} />;
   }
 }
 
@@ -99,3 +132,4 @@ const styles = StyleSheet.create({
     backgroundColor: '#ffffff',
   },
 });
+

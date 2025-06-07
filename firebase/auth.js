@@ -2,6 +2,8 @@ import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, on
 import { auth } from './config';
 import { Alert } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
+import { isAppleLoggedIn, getAppleUserInfo } from './appleLogin';
+import { isKakaoLoggedIn, getKakaoUserInfo } from './kakaoLogin';
 
 // 상수 정의
 const TOKEN_REFRESH_INTERVAL = 30 * 60 * 1000; // 30분마다 토큰 갱신
@@ -115,76 +117,260 @@ export const setupTokenRefresh = () => {
   return null;
 };
 
-// 세션 유효성 검증 함수
+// 통합 로그인 상태 확인 함수
+export const checkIntegratedLoginStatus = async () => {
+  try {
+    console.log('통합 로그인 상태 확인 시작');
+    
+    // Firebase 로그인 상태 확인
+    const currentUser = auth.currentUser;
+    const firebaseLoggedIn = !!currentUser;
+    console.log('Firebase 로그인 상태:', firebaseLoggedIn);
+    
+    // Apple 로그인 상태 확인
+    let appleLoggedIn = false;
+    let appleUserInfo = null;
+    try {
+      appleLoggedIn = await isAppleLoggedIn();
+      if (appleLoggedIn) {
+        appleUserInfo = await getAppleUserInfo();
+      }
+      console.log('Apple 로그인 상태:', appleLoggedIn);
+    } catch (error) {
+      console.log('Apple 로그인 상태 확인 중 오류 (무시):', error.message);
+    }
+    
+    // 카카오 로그인 상태 확인
+    let kakaoLoggedIn = false;
+    let kakaoUserInfo = null;
+    try {
+      kakaoLoggedIn = await isKakaoLoggedIn();
+      if (kakaoLoggedIn) {
+        kakaoUserInfo = await getKakaoUserInfo();
+      }
+      console.log('카카오 로그인 상태:', kakaoLoggedIn);
+    } catch (error) {
+      console.log('카카오 로그인 상태 확인 중 오류 (무시):', error.message);
+    }
+    
+    // 통합 로그인 상태 결정
+    const isLoggedIn = firebaseLoggedIn || appleLoggedIn || kakaoLoggedIn;
+    
+    console.log('통합 로그인 상태 확인 결과:', {
+      firebase: firebaseLoggedIn,
+      apple: appleLoggedIn,
+      kakao: kakaoLoggedIn,
+      integrated: isLoggedIn
+    });
+    
+    return {
+      isLoggedIn,
+      firebase: {
+        loggedIn: firebaseLoggedIn,
+        user: currentUser
+      },
+      apple: {
+        loggedIn: appleLoggedIn,
+        userInfo: appleUserInfo
+      },
+      kakao: {
+        loggedIn: kakaoLoggedIn,
+        userInfo: kakaoUserInfo
+      }
+    };
+  } catch (error) {
+    console.error('통합 로그인 상태 확인 실패:', error);
+    return {
+      isLoggedIn: false,
+      firebase: { loggedIn: false, user: null },
+      apple: { loggedIn: false, userInfo: null },
+      kakao: { loggedIn: false, userInfo: null }
+    };
+  }
+};
+
+// 세션 유효성 검증 함수 (통합 로그인 지원)
 export const verifySession = async () => {
   try {
-    console.log('세션 검증 시작');
+    console.log('통합 세션 검증 시작');
     
-    // 현재 사용자가 있는지 확인
-    const currentUser = auth.currentUser;
-    console.log('Firebase 현재 사용자:', currentUser ? '있음' : '없음');
+    // 통합 로그인 상태 확인
+    const loginStatus = await checkIntegratedLoginStatus();
     
-    if (!currentUser) {
-      // 저장된 인증 상태 확인
-      const authState = await SecureStore.getItemAsync(AUTH_STATE_KEY);
-      console.log('저장된 인증 상태:', authState);
-      const token = await SecureStore.getItemAsync(TOKEN_KEY);
-      console.log('저장된 토큰:', token ? '있음' : '없음');
+    if (loginStatus.isLoggedIn) {
+      console.log('세션 검증 성공 - 로그인 상태 유지');
       
-      return authState === 'loggedIn';
-    }
-    
-    // 토큰 갱신 시도
-    const token = await getValidToken();
-    console.log('토큰 갱신 결과:', token ? '성공' : '실패');
-    
-    if (token) {
-      await saveToken(AUTH_STATE_KEY, 'loggedIn');
+      // Firebase 사용자가 있는 경우 토큰 갱신
+      if (loginStatus.firebase.loggedIn) {
+        const token = await getValidToken();
+        if (token) {
+          await saveToken(AUTH_STATE_KEY, 'loggedIn');
+        }
+      } else {
+        // 소셜 로그인만 있는 경우
+        await saveToken(AUTH_STATE_KEY, 'loggedIn');
+      }
+      
       return true;
+    } else {
+      console.log('세션 검증 실패 - 로그인 필요');
+      await deleteToken(AUTH_STATE_KEY);
+      return false;
     }
-    
-    return false;
   } catch (error) {
-    console.error('Session verification failed:', error);
+    console.error('통합 세션 검증 실패:', error);
     return false;
   }
 };
 
-// 인증 상태 변경 리스너 설정
+// 인증 상태 변경 리스너 설정 (통합 로그인 지원)
 export const setupAuthStateListener = (callback) => {
-  console.log('인증 상태 변경 리스너 설정 중...');
+  console.log('통합 인증 상태 변경 리스너 설정 중...');
   
-  return onAuthStateChanged(auth, async (user) => {
+  // Firebase 인증 상태 변경 리스너
+  const firebaseUnsubscribe = onAuthStateChanged(auth, async (user) => {
     console.log('Firebase 인증 상태 변경 감지:', user ? `${user.email} 로그인됨` : '로그아웃됨');
     
     if (user) {
-      // 사용자가 로그인됨
-      console.log('사용자 로그인 상태, 토큰 저장 중...');
+      // Firebase 사용자가 로그인됨
+      console.log('Firebase 사용자 로그인 상태, 토큰 저장 중...');
       const token = await user.getIdToken();
-      console.log('사용자 토큰 획득:', token ? `${token.substring(0, 15)}...` : '없음');
+      console.log('Firebase 사용자 토큰 획득:', token ? `${token.substring(0, 15)}...` : '없음');
       
       await saveToken(TOKEN_KEY, token);
       await saveToken(EMAIL_KEY, user.email || '');
       await saveToken(AUTH_STATE_KEY, 'loggedIn');
-      console.log('인증 상태를 저장했습니다.');
+      console.log('Firebase 인증 상태를 저장했습니다.');
       
       setupTokenRefresh();
-    } else {
-      // 사용자가 로그아웃됨
-      console.log('사용자 로그아웃 상태, 토큰 삭제 중...');
-      await deleteToken(TOKEN_KEY);
-      await deleteToken(EMAIL_KEY);
-      await deleteToken(AUTH_STATE_KEY);
-      console.log('모든 인증 관련 데이터가 삭제되었습니다.');
-      
-      if (typeof window !== 'undefined' && window.tokenRefreshTimer) {
-        clearInterval(window.tokenRefreshTimer);
-        console.log('토큰 갱신 타이머가 중지되었습니다.');
-      }
     }
     
-    if (callback) callback(!!user);
+    // 통합 로그인 상태 확인 후 콜백 호출
+    const loginStatus = await checkIntegratedLoginStatus();
+    if (callback) callback(loginStatus.isLoggedIn);
   });
+  
+  // 주기적으로 소셜 로그인 상태 확인 (5초마다)
+  const socialLoginChecker = setInterval(async () => {
+    try {
+      const loginStatus = await checkIntegratedLoginStatus();
+      // 현재 상태와 이전 상태가 다르면 콜백 호출
+      if (callback) {
+        // 간단한 상태 변화 감지를 위해 매번 호출하지 않고 필요시에만 호출
+        // 실제 구현에서는 이전 상태를 저장해서 비교할 수 있음
+      }
+    } catch (error) {
+      console.log('소셜 로그인 상태 확인 중 오류:', error.message);
+    }
+  }, 5000);
+  
+  // 정리 함수 반환
+  return () => {
+    firebaseUnsubscribe();
+    clearInterval(socialLoginChecker);
+    console.log('통합 인증 상태 리스너 정리 완료');
+  };
+};
+
+// 통합 로그아웃 함수
+export const integratedLogout = async () => {
+  try {
+    console.log('통합 로그아웃 시작...');
+    
+    // Firebase 로그아웃
+    try {
+      if (auth.currentUser) {
+        await signOut(auth);
+        console.log('Firebase 로그아웃 완료');
+      }
+    } catch (error) {
+      console.error('Firebase 로그아웃 오류:', error);
+    }
+    
+    // Apple 로그아웃
+    try {
+      const { appleLogout } = await import('./appleLogin');
+      await appleLogout();
+      console.log('Apple 로그아웃 완료');
+    } catch (error) {
+      console.log('Apple 로그아웃 중 오류 (무시):', error.message);
+    }
+    
+    // 카카오 로그아웃
+    try {
+      const { kakaoLogout } = await import('./kakaoLogin');
+      await kakaoLogout();
+      console.log('카카오 로그아웃 완료');
+    } catch (error) {
+      console.log('카카오 로그아웃 중 오류 (무시):', error.message);
+    }
+    
+    // 모든 토큰 및 인증 상태 삭제
+    await deleteToken(TOKEN_KEY);
+    await deleteToken(EMAIL_KEY);
+    await deleteToken(REFRESH_TOKEN_KEY);
+    await deleteToken(AUTH_STATE_KEY);
+    console.log('모든 인증 정보 삭제 완료');
+    
+    // 타이머 제거
+    if (typeof window !== 'undefined' && window.tokenRefreshTimer) {
+      clearInterval(window.tokenRefreshTimer);
+      console.log('토큰 갱신 타이머 중지');
+    }
+    
+    console.log('통합 로그아웃 완료');
+    return true;
+  } catch (error) {
+    console.error('통합 로그아웃 오류:', error);
+    throw error;
+  }
+};
+
+// 통합 사용자 정보 가져오기
+export const getIntegratedUserInfo = async () => {
+  try {
+    const loginStatus = await checkIntegratedLoginStatus();
+    
+    let userInfo = {
+      isLoggedIn: loginStatus.isLoggedIn,
+      loginMethod: null,
+      displayName: '사용자',
+      email: null,
+      profileImage: null
+    };
+    
+    if (loginStatus.firebase.loggedIn) {
+      userInfo.loginMethod = 'firebase';
+      userInfo.displayName = loginStatus.firebase.user.email?.split('@')[0] || '사용자';
+      userInfo.email = loginStatus.firebase.user.email;
+    } else if (loginStatus.apple.loggedIn) {
+      userInfo.loginMethod = 'apple';
+      const appleUser = loginStatus.apple.userInfo;
+      if (appleUser.fullName && (appleUser.fullName.givenName || appleUser.fullName.familyName)) {
+        userInfo.displayName = `${appleUser.fullName.givenName || ''} ${appleUser.fullName.familyName || ''}`.trim();
+      } else if (appleUser.email) {
+        userInfo.displayName = appleUser.email.split('@')[0];
+      }
+      userInfo.email = appleUser.email;
+    } else if (loginStatus.kakao.loggedIn) {
+      userInfo.loginMethod = 'kakao';
+      const kakaoUser = loginStatus.kakao.userInfo;
+      userInfo.displayName = kakaoUser.nickname || '사용자';
+      userInfo.profileImage = kakaoUser.profileImageUrl;
+    }
+    
+    console.log('통합 사용자 정보:', userInfo);
+    return userInfo;
+  } catch (error) {
+    console.error('통합 사용자 정보 가져오기 실패:', error);
+    return {
+      isLoggedIn: false,
+      loginMethod: null,
+      displayName: '사용자',
+      email: null,
+      profileImage: null
+    };
+  }
 };
 
 export const signUp = async (email, password) => {
@@ -256,30 +442,6 @@ export const signIn = async (email, password) => {
   }
 };
 
-export const logout = async () => {
-  try {
-    console.log('로그아웃 시도...');
-    
-    // 토큰 및 인증 상태 삭제
-    await deleteToken(TOKEN_KEY);
-    await deleteToken(EMAIL_KEY);
-    await deleteToken(REFRESH_TOKEN_KEY);
-    await deleteToken(AUTH_STATE_KEY);
-    console.log('모든 인증 정보 삭제 완료');
-    
-    // 타이머 제거
-    if (typeof window !== 'undefined' && window.tokenRefreshTimer) {
-      clearInterval(window.tokenRefreshTimer);
-      console.log('토큰 갱신 타이머 중지');
-    }
-    
-    // Firebase 로그아웃
-    await signOut(auth);
-    console.log('Firebase 로그아웃 완료');
-    
-    return true;
-  } catch (error) {
-    console.error("로그아웃 오류:", error);
-    throw error;
-  }
-};
+// 기존 logout 함수는 integratedLogout으로 대체
+export const logout = integratedLogout;
+

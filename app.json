@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "calendar",
-    "slug": "calendar",
+    "name": "미리톡 캘린더",
+    "slug": "miritalk-calendar",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -12,21 +12,78 @@
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.gisung.miritalk",
+      "buildNumber": "1",
+      "infoPlist": {
+        "NSCameraUsageDescription": "일정에 사진을 첨부하기 위해 카메라 접근이 필요합니다.",
+        "NSPhotoLibraryUsageDescription": "일정에 사진을 첨부하기 위해 사진 라이브러리 접근이 필요합니다.",
+        "NSCalendarsUsageDescription": "기기 캘린더와 동기화하기 위해 캘린더 접근이 필요합니다.",
+        "NSRemindersUsageDescription": "알림 설정을 위해 미리 알림 접근이 필요합니다.",
+        "NSUserNotificationsUsageDescription": "일정 알림을 보내기 위해 알림 권한이 필요합니다.",
+        "KAKAO_APP_KEY": "3207ab3575dec6b4018ecfee0ff7ee61",
+        "CFBundleURLTypes": [
+          {
+            "CFBundleURLName": "kakao",
+            "CFBundleURLSchemes": ["kakao3207ab3575dec6b4018ecfee0ff7ee61"]
+          }
+        ],
+        "LSApplicationQueriesSchemes": [
+          "kakaokompassauth",
+          "storykompassauth",
+          "kakaolink",
+          "kakaotalk-5.9.7"
+        ]
+      }
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": true,
+      "package": "com.gisung.miritalk",
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.READ_CALENDAR",
+        "android.permission.WRITE_CALENDAR",
+        "android.permission.VIBRATE",
+        "android.permission.RECEIVE_BOOT_COMPLETED",
+        "android.permission.WAKE_LOCK"
+      ]
     },
     "web": {
-      "favicon": "./assets/favicon.png"
+      "favicon": "./assets/favicon.png",
+      "bundler": "metro"
     },
     "plugins": [
-      "expo-secure-store"
-    ]
+      "expo-secure-store",
+      [
+        "@react-native-seoul/kakao-login",
+        {
+          "nativeAppKey": "3207ab3575dec6b4018ecfee0ff7ee61",
+          "jsAppKey": "3207ab3575dec6b4018ecfee0ff7ee61"
+        }
+      ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "your-eas-project-id"
+      },
+      "firebaseApiKey": "AIzaSyA_JJJq1IumoKEvcbMWE83PYXglPmf93no",
+      "firebaseAuthDomain": "calender-1676d.firebaseapp.com",
+      "firebaseProjectId": "calender-1676d",
+      "firebaseStorageBucket": "calender-1676d.firebasestorage.app",
+      "firebaseMessagingSenderId": "822375301207",
+      "firebaseAppId": "1:822375301207:web:a93fcab8443a1f3e57e312"
+    },
+    "owner": "gisung3253"
   }
 }
+

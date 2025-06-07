@@ -46,6 +46,11 @@ export default StyleSheet.create({
     shadowRadius: 4,
     elevation: 3,
   },
+  // 🆕 추가된 스타일: 비활성화된 입력 필드
+  disabledInput: {
+    backgroundColor: '#F5F5F5',
+    color: '#999999',
+  },
   loginButton: {
     backgroundColor: PRIMARY_COLOR,
     paddingVertical: 15,
@@ -62,6 +67,14 @@ export default StyleSheet.create({
     color: 'white',
     fontSize: 18,
     fontWeight: 'bold',
+  },
+  // 🆕 추가된 스타일: 비활성화된 버튼
+  disabledButton: {
+    opacity: 0.6,
+  },
+  // 🆕 추가된 스타일: 비활성화된 텍스트
+  disabledText: {
+    color: '#CCCCCC',
   },
   oauthContainer: {
     width: '100%',
@@ -229,11 +242,6 @@ export default StyleSheet.create({
     height: 18,
     marginRight: 8,
   },
-  kakaoButtonText: {
-    color: 'rgba(0, 0, 0, 0.85)',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
   appleLoginButton: {
     backgroundColor: '#000000',
     borderRadius: 15,
@@ -255,46 +263,6 @@ export default StyleSheet.create({
   },
   appleIcon: {
     marginRight: 8,
-  },
-  appleButtonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  wavveLoginButton: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 15,
-    width: '100%',
-    height: 50,
-    marginBottom: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  wavveButtonContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    width: '100%',
-    height: '100%',
-  },
-  wavveLogoContainer: {
-    width: 30,
-    height: 30,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 10,
-  },
-  wavveLogo: {
-    width: 30,
-    height: 30,
-  },
-  wavveButtonText: {
-    color: '#000000',
-    fontSize: 16,
-    fontWeight: 'bold',
   },
   signupContainer: {
     flexDirection: 'row',
@@ -371,3 +339,4 @@ export default StyleSheet.create({
     padding: 5,
   }
 });
+
