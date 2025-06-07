@@ -10,8 +10,12 @@ import {
   firebaseAppleLogout 
 } from './appleLogin';
 
-// 카카오 로그인 함수들 import
-import { isKakaoLoggedIn, getKakaoUserInfo, kakaoLogout } from './kakaoLogin';
+// 카카오 로그인 함수들 import (Firebase 연동 버전)
+import { 
+  checkFirebaseKakaoLoginStatus, 
+  getFirebaseKakaoUserInfo, 
+  firebaseKakaoLogout 
+} from './kakaoLogin';
 
 // 상수 정의
 const TOKEN_REFRESH_INTERVAL = 30 * 60 * 1000; // 30분마다 토큰 갱신
@@ -63,10 +67,10 @@ export const checkIntegratedLoginStatus = async () => {
   try {
     console.log('통합 로그인 상태 확인 시작');
     
-    // Firebase 로그인 상태 확인
+    // Firebase 로그인 상태 확인 (이메일/비밀번호 로그인)
     const firebaseUser = auth.currentUser;
-    const isFirebaseLoggedIn = !!firebaseUser;
-    console.log('Firebase 로그인 상태:', isFirebaseLoggedIn);
+    const isFirebaseEmailLoggedIn = !!firebaseUser && !firebaseUser.isAnonymous;
+    console.log('Firebase 이메일 로그인 상태:', isFirebaseEmailLoggedIn);
     
     // Apple 로그인 상태 확인
     let isAppleLoggedIn = false;
@@ -81,17 +85,18 @@ export const checkIntegratedLoginStatus = async () => {
     // 카카오 로그인 상태 확인
     let isKakaoLoggedIn = false;
     try {
-      isKakaoLoggedIn = await isKakaoLoggedIn();
+      const kakaoStatus = await checkFirebaseKakaoLoginStatus();
+      isKakaoLoggedIn = kakaoStatus.integrated;
       console.log('카카오 로그인 상태:', isKakaoLoggedIn);
     } catch (error) {
       console.log('카카오 로그인 모듈 없음 또는 오류:', error.message);
     }
     
-    // 통합 로그인 상태 (Firebase 또는 소셜 로그인 중 하나라도 있으면 로그인됨)
-    const isIntegratedLoggedIn = isFirebaseLoggedIn || isAppleLoggedIn || isKakaoLoggedIn;
+    // 통합 로그인 상태 (Firebase 이메일, Apple, 카카오 중 하나라도 있으면 로그인됨)
+    const isIntegratedLoggedIn = isFirebaseEmailLoggedIn || isAppleLoggedIn || isKakaoLoggedIn;
     
     const result = {
-      firebase: isFirebaseLoggedIn,
+      firebase: isFirebaseEmailLoggedIn,
       apple: isAppleLoggedIn,
       kakao: isKakaoLoggedIn,
       integrated: isIntegratedLoggedIn
@@ -143,17 +148,19 @@ export const getIntegratedUserInfo = async () => {
       authType: null,
       displayName: '사용자',
       email: null,
-      uid: null
+      uid: null,
+      profileImageUrl: null
     };
     
-    // Firebase 사용자 정보 우선
+    // Firebase 이메일 사용자 정보 우선
     if (loginStatus.firebase) {
       const firebaseUser = auth.currentUser;
       userInfo = {
         authType: 'firebase',
         displayName: firebaseUser.displayName || firebaseUser.email?.split('@')[0] || '사용자',
         email: firebaseUser.email,
-        uid: firebaseUser.uid
+        uid: firebaseUser.uid,
+        profileImageUrl: firebaseUser.photoURL
       };
     }
     // Apple 사용자 정보
@@ -165,7 +172,8 @@ export const getIntegratedUserInfo = async () => {
             authType: 'apple',
             displayName: appleUserInfo.displayName || '사용자',
             email: appleUserInfo.email,
-            uid: appleUserInfo.firebaseUID
+            uid: appleUserInfo.firebaseUID,
+            profileImageUrl: null
           };
         }
       } catch (error) {
@@ -175,13 +183,14 @@ export const getIntegratedUserInfo = async () => {
     // 카카오 사용자 정보
     else if (loginStatus.kakao) {
       try {
-        const kakaoUserInfo = await getKakaoUserInfo();
+        const kakaoUserInfo = await getFirebaseKakaoUserInfo();
         if (kakaoUserInfo) {
           userInfo = {
             authType: 'kakao',
-            displayName: kakaoUserInfo.nickname || '사용자',
+            displayName: kakaoUserInfo.displayName || '사용자',
             email: kakaoUserInfo.email,
-            uid: kakaoUserInfo.id
+            uid: kakaoUserInfo.firebaseUID,
+            profileImageUrl: kakaoUserInfo.profileImageUrl
           };
         }
       } catch (error) {
@@ -204,13 +213,13 @@ export const integratedLogout = async () => {
     
     const loginStatus = await checkIntegratedLoginStatus();
     
-    // Firebase 로그아웃
+    // Firebase 이메일 로그아웃
     if (loginStatus.firebase) {
       try {
         await signOut(auth);
-        console.log('Firebase 로그아웃 완료');
+        console.log('Firebase 이메일 로그아웃 완료');
       } catch (error) {
-        console.error('Firebase 로그아웃 실패:', error);
+        console.error('Firebase 이메일 로그아웃 실패:', error);
       }
     }
     
@@ -227,7 +236,7 @@ export const integratedLogout = async () => {
     // 카카오 로그아웃
     if (loginStatus.kakao) {
       try {
-        await kakaoLogout();
+        await firebaseKakaoLogout();
         console.log('카카오 로그아웃 완료');
       } catch (error) {
         console.error('카카오 로그아웃 실패:', error);
@@ -268,7 +277,7 @@ export const setupAuthStateListener = (callback) => {
     }
   });
   
-  // 소셜 로그인 상태 변화 감지를 위한 주기적 확인 (선택사항)
+  // 소셜 로그인 상태 변화 감지를 위한 주기적 확인
   const socialLoginChecker = setInterval(async () => {
     try {
       const loginStatus = await checkIntegratedLoginStatus();
@@ -284,6 +293,31 @@ export const setupAuthStateListener = (callback) => {
     clearInterval(socialLoginChecker);
     console.log('통합 인증 상태 리스너 정리 완료');
   };
+};
+
+// 특정 인증 방식 사용자 정보 가져오기
+export const getAuthTypeUserInfo = async (authType) => {
+  try {
+    switch (authType) {
+      case 'apple':
+        return await getFirebaseAppleUserInfo();
+      case 'kakao':
+        return await getFirebaseKakaoUserInfo();
+      case 'firebase':
+        const user = auth.currentUser;
+        return user ? {
+          uid: user.uid,
+          email: user.email,
+          displayName: user.displayName || user.email?.split('@')[0] || '사용자',
+          authProvider: 'firebase'
+        } : null;
+      default:
+        return await getIntegratedUserInfo();
+    }
+  } catch (error) {
+    console.error(`${authType} 사용자 정보 가져오기 실패:`, error);
+    return null;
+  }
 };
 
 // 기존 Firebase 전용 함수들 (호환성 유지)
